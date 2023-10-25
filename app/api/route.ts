@@ -1,3 +1,6 @@
+/**
+ * Endpoint: [GET] http://localhost:3000/api
+ */
 export async function GET() {
   const data = [
     { id: 1, word: 'what', date: '2023/10/24' },
@@ -15,16 +18,25 @@ export async function GET() {
     { id: 13, word: 'welcome', date: '2023/10/24' },
   ];
 
-  const dataWithSyllables = await Promise.all(data.map(async item => {
-    const result = await fetch(`https://api-portal.dictionary.com/dcom/pageData/${item.word}`)
-      .then(res => res.json())
-      .then(jsonObj => jsonObj.data.content.shift().entries.shift().entrySyllabified);
+  const dataWithSpelling = await Promise.all(
+    data.map(async item => {
+      const spelling = await fetch(
+        `https://api-portal.dictionary.com/dcom/pageData/${item.word}`
+      )
+        .then(res => res.json())
+        .then(jsonObj => {
+          const firstContent = jsonObj.data.content.shift();
+          const firstEntry = firstContent.entries.shift();
+          const IPA = firstEntry.pronunciation.ipa;
+          return IPA.split(',')[0].split(';')[0];
+        });
 
-    return {
-      ...item,
-      syllables: result.split('·').join('-'),
-    };
-  }));
-  
-  return Response.json({ success: true, data: dataWithSyllables });
+      return {
+        ...item,
+        spelling: `[ ${spelling} ]`,
+      };
+    })
+  );
+
+  return Response.json({ success: true, data: dataWithSpelling });
 }

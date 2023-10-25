@@ -20,9 +20,9 @@ import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 type VocabularyData = {
   id: number;
   word: string;
-  syllables: string;
+  spelling: string;
   date: Date;
-}
+};
 
 const Home = () => {
   const speakingLock = useRef(false);
@@ -30,26 +30,24 @@ const Home = () => {
   const [rows, setRows] = useState([] as VocabularyData[]);
   const [cards, setCards] = useState([] as VocabularyData[]);
   const [cardIndex, setCardIndex] = useState(0);
-  
+
   const synth = global.speechSynthesis;
   let id: NodeJS.Timeout;
-
 
   useEffect(() => {
     const fetchData = async () => {
       const { success, data } = await fetch('/api').then(res => res.json());
-      
+
       success && setRows(data);
     };
 
     fetchData();
-  }, [])
+  }, []);
 
   // Currying Function
   const speak = (times: number) => (word: string) => {
-    
     const utterThis = new SpeechSynthesisUtterance(word);
-    
+
     const readout = (count: number) => {
       speakingLock.current = count < times - 1;
 
@@ -81,8 +79,8 @@ const Home = () => {
       width: 200,
     },
     {
-      field: 'syllables',
-      headerName: 'Syllables',
+      field: 'spelling',
+      headerName: 'Spelling',
       sortable: false,
       width: 200,
     },
@@ -127,9 +125,9 @@ const Home = () => {
   const handleDialogClose = (_?: Object, reason?: string) => {
     // Don't close the dialog if user clicks outside of it.
     // We would only accept user to close the dialog from the "CLOSE" button.
-    if (reason && reason === "backdropClick") return;
-    if (reason && reason === "escapeKeyDown") return;
-    setDialogShow(false); 
+    if (reason && reason === 'backdropClick') return;
+    if (reason && reason === 'escapeKeyDown') return;
+    setDialogShow(false);
   };
 
   const handleDialogNext = () => {
@@ -181,7 +179,9 @@ const Home = () => {
         <Button
           onClick={handleDialogNext}
           sx={{
+            fontSize: '36px',
             fontWeight: 'bold',
+            marginRight: '20px',
           }}
           hidden={cardIndex + 1 === cards.length}
         >
@@ -193,7 +193,9 @@ const Home = () => {
         <Button
           onClick={handleDialogClose}
           sx={{
+            fontSize: '36px',
             fontWeight: 'bold',
+            paddingRight: '20px',
           }}
           hidden={cardIndex + 1 < cards.length}
         >
@@ -204,13 +206,16 @@ const Home = () => {
   }, [cards, cardIndex]);
 
   return (
-    <main className={styles.main} style={{
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
+    <main
+      className={styles.main}
+      style={{
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
       <Box
         sx={{
           width: '100%',
@@ -244,8 +249,8 @@ const Home = () => {
         <Dialog fullScreen open={dialogShow} onClose={handleDialogClose}>
           <DialogTitle
             sx={{
-              backgroundColor: 'black',
-              color: 'white',
+              backgroundColor: 'white',
+              color: 'blacks',
               fontSize: '60px',
               fontWeight: 'bold',
             }}
@@ -267,9 +272,12 @@ const Home = () => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
+                backgroundColor: 'black',
+                color: 'white',
+                padding: 0,
               }}
             >
-              <Typography 
+              <Typography
                 sx={{
                   fontSize: '180px',
                 }}
@@ -281,13 +289,13 @@ const Home = () => {
                   fontSize: '60px',
                 }}
               >
-                {cards[cardIndex]?.syllables}
+                {cards[cardIndex]?.spelling}
               </Typography>
             </Box>
           </DialogContent>
           <DialogActions
             sx={{
-              backgroundColor: 'black',
+              backgroundColor: 'white',
             }}
           >
             {buttons}
