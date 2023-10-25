@@ -2,7 +2,7 @@
 
 import styles from './page.module.css';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -17,14 +17,33 @@ import {
 import { Campaign, PlayCircle } from '@mui/icons-material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 
+type VocabularyData = {
+  id: number;
+  word: string;
+  syllables: string;
+  date: Date;
+}
+
 const Home = () => {
   const speakingLock = useRef(false);
   const [dialogShow, setDialogShow] = useState(false);
-  const [cards, setCards] = useState([] as string[]);
+  const [rows, setRows] = useState([] as VocabularyData[]);
+  const [cards, setCards] = useState([] as VocabularyData[]);
   const [cardIndex, setCardIndex] = useState(0);
   
   const synth = global.speechSynthesis;
   let id: NodeJS.Timeout;
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { success, data } = await fetch('/api').then(res => res.json());
+      
+      success && setRows(data);
+    };
+
+    fetchData();
+  }, [])
 
   // Currying Function
   const speak = (times: number) => (word: string) => {
@@ -62,6 +81,12 @@ const Home = () => {
       width: 200,
     },
     {
+      field: 'syllables',
+      headerName: 'Syllables',
+      sortable: false,
+      width: 200,
+    },
+    {
       field: 'date',
       headerName: 'Date',
       sortable: false,
@@ -88,29 +113,12 @@ const Home = () => {
     },
   ];
 
-  // Mock Vocabulary
-  const rows = [
-    { id: 1, word: 'what', date: '2023/10/24' },
-    { id: 2, word: 'hey', date: '2023/10/24' },
-    { id: 3, word: 'morning', date: '2023/10/24' },
-    { id: 4, word: 'good', date: '2023/10/24' },
-    { id: 5, word: 'help', date: '2023/10/24' },
-    { id: 6, word: 'come', date: '2023/10/24' },
-    { id: 7, word: 'here', date: '2023/10/24' },
-    { id: 8, word: 'my', date: '2023/10/24' },
-    { id: 9, word: 'find', date: '2023/10/24' },
-    { id: 10, word: 'dog', date: '2023/10/24' },
-    { id: 11, word: 'thank', date: '2023/10/24' },
-    { id: 12, word: 'you', date: '2023/10/24' },
-    { id: 13, word: 'welcome', date: '2023/10/24' },
-  ];
-
-  const randomCard: string[] = useMemo(() => {
-    return rows.map(items => items.word).sort(() => Math.random() - 0.5);
+  const randomCard: VocabularyData[] = useMemo(() => {
+    return [...rows].sort(() => Math.random() - 0.5).slice(0, 10);
   }, [rows]);
 
   const handleDialogOpen = async () => {
-    speakTripleTimes(randomCard[0]);
+    speakTripleTimes(randomCard[0].word);
     setCards(randomCard);
     setCardIndex(0);
     setDialogShow(true);
@@ -129,7 +137,7 @@ const Home = () => {
 
     const index = cardIndex + 1;
 
-    speakTripleTimes(cards[index]);
+    speakTripleTimes(cards[index].word);
     setCardIndex(index);
   };
 
@@ -238,7 +246,7 @@ const Home = () => {
             sx={{
               backgroundColor: 'black',
               color: 'white',
-              fontsize: '60px',
+              fontSize: '60px',
               fontWeight: 'bold',
             }}
           >
@@ -256,12 +264,25 @@ const Home = () => {
               sx={{
                 height: '100%',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '90px',
               }}
             >
-              {cards[cardIndex]}
+              <Typography 
+                sx={{
+                  fontSize: '180px',
+                }}
+              >
+                {cards[cardIndex]?.word}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '60px',
+                }}
+              >
+                {cards[cardIndex]?.syllables}
+              </Typography>
             </Box>
           </DialogContent>
           <DialogActions
