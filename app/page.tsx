@@ -1,95 +1,280 @@
-import Image from 'next/image'
-import styles from './page.module.css'
+'use client';
 
-export default function Home() {
-  return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+import styles from './page.module.css';
+
+import { useMemo, useRef, useState } from 'react';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import { Campaign, PlayCircle } from '@mui/icons-material';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+
+const Home = () => {
+  const speakingLock = useRef(false);
+  const [dialogShow, setDialogShow] = useState(false);
+  const [cards, setCards] = useState([] as string[]);
+  const [cardIndex, setCardIndex] = useState(0);
+  
+  const synth = global.speechSynthesis;
+  let id: NodeJS.Timeout;
+
+  // Currying Function
+  const speak = (times: number) => (word: string) => {
+    
+    const utterThis = new SpeechSynthesisUtterance(word);
+    
+    const readout = (count: number) => {
+      speakingLock.current = count < times - 1;
+
+      if (synth.speaking) {
+        clearInterval(id);
+        synth.cancel();
+        speakingLock.current = false;
+      }
+      utterThis.rate = 0.5;
+      synth.speak(utterThis);
+    };
+
+    for (let i = 0; i < times; i++) {
+      id = setTimeout(() => readout(i), i * 2000);
+    }
+  };
+
+  // Speak 1-time
+  const speakOnce = speak(1);
+  // Speak 3-time
+  const speakTripleTimes = speak(3);
+
+  const columns: GridColDef[] = [
+    { field: 'id', headerName: '#', sortable: false, width: 50 },
+    {
+      field: 'word',
+      headerName: 'Word',
+      sortable: false,
+      width: 200,
+    },
+    {
+      field: 'date',
+      headerName: 'Date',
+      sortable: false,
+      width: 150,
+    },
+    {
+      field: 'action',
+      headerName: 'Action',
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<any, Date>) => {
+        const onClick = () => {
+          const {
+            row: { word },
+          } = params;
+          speakOnce(word);
+        };
+
+        return (
+          <IconButton aria-label="delete" onClick={onClick}>
+            <Campaign />
+          </IconButton>
+        );
+      },
+    },
+  ];
+
+  // Mock Vocabulary
+  const rows = [
+    { id: 1, word: 'what', date: '2023/10/24' },
+    { id: 2, word: 'hey', date: '2023/10/24' },
+    { id: 3, word: 'morning', date: '2023/10/24' },
+    { id: 4, word: 'good', date: '2023/10/24' },
+    { id: 5, word: 'help', date: '2023/10/24' },
+    { id: 6, word: 'come', date: '2023/10/24' },
+    { id: 7, word: 'here', date: '2023/10/24' },
+    { id: 8, word: 'my', date: '2023/10/24' },
+    { id: 9, word: 'find', date: '2023/10/24' },
+    { id: 10, word: 'dog', date: '2023/10/24' },
+    { id: 11, word: 'thank', date: '2023/10/24' },
+    { id: 12, word: 'you', date: '2023/10/24' },
+    { id: 13, word: 'welcome', date: '2023/10/24' },
+  ];
+
+  const randomCard: string[] = useMemo(() => {
+    return rows.map(items => items.word).sort(() => Math.random() - 0.5);
+  }, [rows]);
+
+  const handleDialogOpen = async () => {
+    speakTripleTimes(randomCard[0]);
+    setCards(randomCard);
+    setCardIndex(0);
+    setDialogShow(true);
+  };
+
+  const handleDialogClose = (_?: Object, reason?: string) => {
+    // Don't close the dialog if user clicks outside of it.
+    // We would only accept user to close the dialog from the "CLOSE" button.
+    if (reason && reason === "backdropClick") return;
+    if (reason && reason === "escapeKeyDown") return;
+    setDialogShow(false); 
+  };
+
+  const handleDialogNext = () => {
+    if (speakingLock.current) return;
+
+    const index = cardIndex + 1;
+
+    speakTripleTimes(cards[index]);
+    setCardIndex(index);
+  };
+
+  const DataGridTitle = () => {
+    return (
+      <Box
+        sx={{
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'left',
+          alignItems: 'center',
+          padding: '10px',
+          borderBottom: '1px solid #e0e0e0',
+        }}
+      >
+        <Typography
+          variant="h5"
+          sx={{
+            flex: 1,
+          }}
+        >
+          Vocabulary
+        </Typography>
+        <Tooltip title="Display Flashcards">
+          <IconButton
+            sx={{
+              paddingRight: '10px',
+            }}
+            onClick={handleDialogOpen}
           >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+            <PlayCircle />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    );
+  };
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
+  const buttons = useMemo(() => {
+    if (cards.length > cardIndex + 1) {
+      return (
+        <Button
+          onClick={handleDialogNext}
+          sx={{
+            fontWeight: 'bold',
+          }}
+          hidden={cardIndex + 1 === cards.length}
         >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
+          Next
+        </Button>
+      );
+    } else {
+      return (
+        <Button
+          onClick={handleDialogClose}
+          sx={{
+            fontWeight: 'bold',
+          }}
+          hidden={cardIndex + 1 < cards.length}
         >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
+          Close
+        </Button>
+      );
+    }
+  }, [cards, cardIndex]);
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
+  return (
+    <main className={styles.main} style={{
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      <Box
+        sx={{
+          width: '100%',
+        }}
+      >
+        <Box
+          sx={{
+            width: '100%',
+            backgroundColor: 'white',
+          }}
         >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+          <DataGrid
+            slots={{
+              toolbar: DataGridTitle,
+            }}
+            rows={rows}
+            columns={columns}
+            initialState={{
+              pagination: {
+                paginationModel: {
+                  pageSize: 10,
+                },
+              },
+            }}
+            pageSizeOptions={[10]}
+            autoHeight
+            checkboxSelection
+            disableRowSelectionOnClick
+          />
+        </Box>
+        <Dialog fullScreen open={dialogShow} onClose={handleDialogClose}>
+          <DialogTitle
+            sx={{
+              backgroundColor: 'black',
+              color: 'white',
+              fontsize: '60px',
+              fontWeight: 'bold',
+            }}
+          >
+            Flashcards
+          </DialogTitle>
+          <DialogContent
+            dividers={true}
+            sx={{
+              width: '100%',
+              height: '100%',
+              paddingTop: '0',
+            }}
+          >
+            <Box
+              sx={{
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '90px',
+              }}
+            >
+              {cards[cardIndex]}
+            </Box>
+          </DialogContent>
+          <DialogActions
+            sx={{
+              backgroundColor: 'black',
+            }}
+          >
+            {buttons}
+          </DialogActions>
+        </Dialog>
+      </Box>
     </main>
-  )
-}
+  );
+};
+
+export default Home;
