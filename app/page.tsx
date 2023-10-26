@@ -11,11 +11,12 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import { Campaign, PlayCircle } from '@mui/icons-material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+
+import VerticalTabs from '@/components/VerticalTabs';
 
 type VocabularyData = {
   id: number;
@@ -25,6 +26,7 @@ type VocabularyData = {
 };
 
 const Home = () => {
+  const forceFetchRef = useRef(true);
   const speakingLock = useRef(false);
   const [dialogShow, setDialogShow] = useState(false);
   const [rows, setRows] = useState([] as VocabularyData[]);
@@ -34,14 +36,17 @@ const Home = () => {
   const synth = global.speechSynthesis;
   let id: NodeJS.Timeout;
 
+  const fetchData = async () => {
+    const { success, data } = await fetch('/api').then(res => res.json());
+
+    success && setRows(data);
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      const { success, data } = await fetch('/api').then(res => res.json());
-
-      success && setRows(data);
-    };
-
-    fetchData();
+    if (forceFetchRef.current) {
+      forceFetchRef.current = false;
+      fetchData();
+    }
   }, []);
 
   // Currying Function
@@ -52,7 +57,7 @@ const Home = () => {
       speakingLock.current = count < times - 1;
 
       if (synth.speaking) {
-        clearInterval(id);
+        clearTimeout(id);
         synth.cancel();
         speakingLock.current = false;
       }
@@ -70,47 +75,6 @@ const Home = () => {
   // Speak 3-time
   const speakTripleTimes = speak(3);
 
-  const columns: GridColDef[] = [
-    { field: 'id', headerName: '#', sortable: false, width: 50 },
-    {
-      field: 'word',
-      headerName: 'Word',
-      sortable: false,
-      width: 200,
-    },
-    {
-      field: 'spelling',
-      headerName: 'Spelling',
-      sortable: false,
-      width: 200,
-    },
-    {
-      field: 'date',
-      headerName: 'Date',
-      sortable: false,
-      width: 150,
-    },
-    {
-      field: 'action',
-      headerName: 'Action',
-      sortable: false,
-      renderCell: (params: GridRenderCellParams<any, Date>) => {
-        const onClick = () => {
-          const {
-            row: { word },
-          } = params;
-          speakOnce(word);
-        };
-
-        return (
-          <IconButton aria-label="delete" onClick={onClick}>
-            <Campaign />
-          </IconButton>
-        );
-      },
-    },
-  ];
-
   const randomCard: VocabularyData[] = useMemo(() => {
     return [...rows].sort(() => Math.random() - 0.5).slice(0, 10);
   }, [rows]);
@@ -126,7 +90,6 @@ const Home = () => {
     // Don't close the dialog if user clicks outside of it.
     // We would only accept user to close the dialog from the "CLOSE" button.
     if (reason && reason === 'backdropClick') return;
-    if (reason && reason === 'escapeKeyDown') return;
     setDialogShow(false);
   };
 
@@ -137,40 +100,6 @@ const Home = () => {
 
     speakTripleTimes(cards[index].word);
     setCardIndex(index);
-  };
-
-  const DataGridTitle = () => {
-    return (
-      <Box
-        sx={{
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'left',
-          alignItems: 'center',
-          padding: '10px',
-          borderBottom: '1px solid #e0e0e0',
-        }}
-      >
-        <Typography
-          variant="h5"
-          sx={{
-            flex: 1,
-          }}
-        >
-          Vocabulary
-        </Typography>
-        <Tooltip title="Display Flashcards">
-          <IconButton
-            sx={{
-              paddingRight: '10px',
-            }}
-            onClick={handleDialogOpen}
-          >
-            <PlayCircle />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    );
   };
 
   const buttons = useMemo(() => {
@@ -205,6 +134,155 @@ const Home = () => {
     }
   }, [cards, cardIndex]);
 
+  const WordsDataGrid = () => {
+    const columns: GridColDef[] = [
+      {
+        field: 'id',
+        headerName: '#',
+        headerClassName: 'mui-datagrid-header',
+        sortable: false,
+        width: 50,
+      },
+      {
+        field: 'word',
+        headerName: 'Word',
+        headerClassName: 'mui-datagrid-header',
+        sortable: false,
+        width: 200,
+      },
+      {
+        field: 'spelling',
+        headerName: 'Spelling',
+        headerClassName: 'mui-datagrid-header',
+        sortable: false,
+        width: 200,
+      },
+      {
+        field: 'date',
+        headerName: 'Date',
+        headerClassName: 'mui-datagrid-header',
+        sortable: false,
+        width: 150,
+      },
+      {
+        field: 'action',
+        headerName: 'Action',
+        headerClassName: 'mui-datagrid-header',
+        sortable: false,
+        flex: 1,
+        renderCell: (params: GridRenderCellParams<any, Date>) => {
+          const onClick = () => {
+            const {
+              row: { word },
+            } = params;
+            speakOnce(word);
+          };
+
+          return (
+            <IconButton aria-label="delete" onClick={onClick}>
+              <Campaign />
+            </IconButton>
+          );
+        },
+      },
+    ];
+
+    const DataGridTitle = () => {
+      return (
+        <Box
+          sx={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'left',
+            alignItems: 'center',
+            padding: '10px',
+            borderBottom: '1px solid #e0e0e0',
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: '36px',
+              fontWeight: 'bold',
+              flex: 1,
+            }}
+          >
+            Vocabulary
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<PlayCircle style={{ width: '30px', height: '30px' }} />}
+            sx={{
+              fontSize: '20px',
+              paddingRight: '10px',
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.54)',
+              },
+              '&:active': {
+                backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                boxShadow: 'none',
+              },
+            }}
+            onClick={handleDialogOpen}
+          >
+            Display Flashcards
+          </Button>
+        </Box>
+      );
+    };
+
+    return (
+      <Box
+        sx={{
+          flex: 1,
+          borderRadius: '15px',
+          width: '100%',
+          backgroundColor: 'white',
+
+          '& .mui-datagrid-header': {
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            color: 'white',
+            fontWeight: 'bold',
+          },
+        }}
+      >
+        <DataGrid
+          sx={{
+            borderRadius: '15px',
+            fontSize: '20px',
+          }}
+          slots={{
+            toolbar: DataGridTitle,
+          }}
+          rows={rows}
+          columns={columns}
+          initialState={{
+            pagination: {
+              paginationModel: {
+                pageSize: 10,
+              },
+            },
+          }}
+          pageSizeOptions={[10]}
+          autoHeight
+          // checkboxSelection
+          disableRowSelectionOnClick
+        />
+      </Box>
+    );
+  };
+
+  const panels = [
+    {
+      title: 'Vocabulary',
+      el: <WordsDataGrid />,
+    },
+    {
+      title: 'Sentences',
+      el: <Typography sx={{ color: 'black' }}>Item 2!!</Typography>,
+    },
+  ];
+
   return (
     <main
       className={styles.main}
@@ -219,38 +297,15 @@ const Home = () => {
       <Box
         sx={{
           width: '100%',
+          display: 'inline-flex',
         }}
       >
-        <Box
-          sx={{
-            width: '100%',
-            backgroundColor: 'white',
-          }}
-        >
-          <DataGrid
-            slots={{
-              toolbar: DataGridTitle,
-            }}
-            rows={rows}
-            columns={columns}
-            initialState={{
-              pagination: {
-                paginationModel: {
-                  pageSize: 10,
-                },
-              },
-            }}
-            pageSizeOptions={[10]}
-            autoHeight
-            checkboxSelection
-            disableRowSelectionOnClick
-          />
-        </Box>
+        <VerticalTabs panels={panels} />
         <Dialog fullScreen open={dialogShow} onClose={handleDialogClose}>
           <DialogTitle
             sx={{
               backgroundColor: 'white',
-              color: 'blacks',
+              color: 'black',
               fontSize: '60px',
               fontWeight: 'bold',
             }}

@@ -1,3 +1,14 @@
+// The performance is really bad in this way!
+//
+// const en2ipa = require('en-ipa');
+// const ipa = await en2ipa(data.map(i=>i.word));
+// const dataWithSpelling = data.map((item, index) => {
+//   return {
+//     ...item,
+//     spelling: `[ ${ipa[index].phonetic} ]`,
+//   }
+// });
+
 /**
  * Endpoint: [GET] http://localhost:3000/api
  */
@@ -18,6 +29,7 @@ export async function GET() {
     { id: 13, word: 'welcome', date: '2023/10/24' },
   ];
 
+  // For now, we use the phonetic information from the dictionary website.
   const dataWithSpelling = await Promise.all(
     data.map(async item => {
       const spelling = await fetch(
